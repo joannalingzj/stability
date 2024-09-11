@@ -49,8 +49,10 @@ suppressMessages(
   )
 )
 
+data(example_data)
+
 # Test using CSL312 sFP 36 months example data
-data <- read_excel("C:/Users/U0152563/OneDrive - CSL Behring/Desktop/R learning/stability/Stability_Examples.xlsx", sheet = "CLS312_sFP_36m") %>% 
+data <- example_data %>% 
   clean_names() %>% 
   mutate(time = time_months,
          batch = lot) %>% 
@@ -83,7 +85,6 @@ data_transf <- data %>%
                                    quality_attribute == "CE non reducing LMWS" ~ "Time^2",
                                    TRUE ~ "Time"))
 
-
 # Set colours using all batches in dataset
 colours <- c("#FC1921","#0E56A5","#F5C017","#975DA2","#00A28A",
              "#DA2877","#F06125","#03B3BE","#C6D92D","#572A7B")
@@ -97,7 +98,8 @@ ul <- data_dist$upper_limit
 # Initialise empty results list 
 stab <- vector(mode = "list", length = length(qa))
 
-for (i in 1:1) {
+# Loop over all quality attributes and save results to list
+for (i in 1:length(qa)) {
   
   data_qa <- subset(data_transf, quality_attribute == qa[i])
   
@@ -108,6 +110,15 @@ for (i in 1:1) {
                          backtransform = bt, colours_named = colours_named, debug = 0)
   
 }
+
+# The results are returned in a list containing: 
+#   1. The chosen model as a number
+#   2. The chosen model as a string 
+#   3. A tibble of the estimated expiry dates and model fit with 90/95% confidence intervals for each model and batch
+#   4. A tibble of the parameter estimates, standard errors, t value and p-value for each model 
+#   5. The estimated expiry date from the chosen model as a number
+#   6. The plot of observed stability data and predicted model fit with the appropriate confidence intervals up till the expiry date
+#   7. A list of residual plots for models 1 to 4. 
 
 stab[[1]]
 
