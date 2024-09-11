@@ -25,6 +25,7 @@
 #' @importFrom rlang .data
 ## usethis namespace: end
 NULL
+
 # Seems like this but doesn't work? only moving the chunk to the bottom works
 # But then check() throws errors because its not being read in the beginning
 # https://github.com/r-lib/roxygen2/issues/1409
@@ -713,8 +714,8 @@ expiryplot <- function(data, outcome, label, lowerlimit, upperlimit,
       ggplot2::geom_line(data = conf_sub,
                          ggplot2::aes(x = .data$time, y = .data$fit, group = .data$batch, color = .data$batch), linewidth = 1) +
       ggplot2::geom_point(ggplot2::aes(y = .data[[outcome]]), position = ggplot2::position_jitter()) +
-      ggplot2::geom_hline(yintercept = .data$upperlimit) +
-      ggplot2::geom_vline(xintercept = .data$expirydate_months) +
+      ggplot2::geom_hline(yintercept = upperlimit) +
+      ggplot2::geom_vline(xintercept = expirydate_months) +
       ggplot2::scale_x_continuous(breaks = seq(0,xend_months,steps_months)) +
       ggplot2::scale_color_manual(values=colours_named) +
       ggplot2::ylim(ystart,yend) +
@@ -818,16 +819,3 @@ stability <- function(data, outcome, label, lowerlimit, upperlimit, poolMSE, bac
   results <- list(model[[1]], model[[2]], exp, results[[1]], expiryplot[[1]], expiryplot[[2]], results[[3]])
 
 }
-
-# ------------------------------------------------------------------------------
-
-# The following block is used by usethis to automatically manage
-# roxygen namespace tags. Modify with care!
-## usethis namespace: start
-#' @importFrom rlang :=
-#' @importFrom rlang .data
-## usethis namespace: end
-
-# Seems like this but doesn't work? only moving the chunk to the bottom works
-# But then check() throws errors because its not being read in the beginning
-# https://github.com/r-lib/roxygen2/issues/1409
