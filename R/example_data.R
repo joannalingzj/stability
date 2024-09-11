@@ -6,6 +6,7 @@
 #' A data frame with 396 rows and 16 columns:
 #' \describe{
 #'   \item{Time (months)}{Stability time point}
+#'   \item{Temperature}{Storage temperature}
 #'   \item{Lot}{Year}
 #'   \item{Quality Attribute}{Year}
 #'   \item{Lower Limit}{Lower limit of quality attribute}
