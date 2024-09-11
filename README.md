@@ -43,9 +43,10 @@ suppressMessages(
   )
 )
 
+# Load example dataset from stability package
 data(example_data)
 
-# Test using CSL312 sFP 36 months example data
+# Clean variable names, rename variables to required names, exclude unrelated data points 
 data <- example_data %>% 
   clean_names() %>% 
   mutate(time = time_months,
@@ -61,12 +62,14 @@ data <- example_data %>%
                           TRUE ~ 0 )) %>% 
   subset(flag == 0)
 
+# Get a dataset of distinct limits and generate clean labels 
 data_dist <- data[,c("quality_attribute","units","lower_limit","upper_limit")] %>% 
   distinct() %>% 
   subset(!is.na(lower_limit) | !is.na(upper_limit)) %>% 
   mutate(label = case_when(units == "N/A" ~ paste0(quality_attribute),
                            TRUE ~ paste0(quality_attribute," (",units,")")))
 
+# Transform time variable where needed and generate back transform variable - trial and error
 data_transf <- data %>% 
   mutate(time = case_when(quality_attribute == "SE HPLC Monomer" ~ sqrt(time),
                           quality_attribute == "SE HPLC HMWS" ~ sqrt(time),
@@ -84,6 +87,7 @@ colours <- c("#FC1921","#0E56A5","#F5C017","#975DA2","#00A28A",
              "#DA2877","#F06125","#03B3BE","#C6D92D","#572A7B")
 colours_named <- setNames(object = colours, nm = c(unique(data_transf$batch),"Common Intercept"))
 
+# Get vectors of quality attributes, labels and limits
 qa <- data_dist$quality_attribute
 lbl <- data_dist$label
 ll <- data_dist$lower_limit
@@ -95,17 +99,20 @@ stab <- vector(mode = "list", length = length(qa))
 # Loop over all quality attributes and save results to list
 for (i in 1:length(qa)) {
   
+  # Subset selected quality attribute
   data_qa <- subset(data_transf, quality_attribute == qa[i])
   
+  # Get backtransformation string for the selected attribute
   bt <- unique(data_qa$backtransform)
   
+  # Run stability function and save results to list
   stab[[i]] <- stability(data = data_qa, outcome = "result_value", label = lbl[i],
                          lowerlimit = ll[i], upperlimit = ul[i], poolMSE = 0, 
                          backtransform = bt, colours_named = colours_named, debug = 0)
   
 }
 
-# The results are returned in a list containing: 
+# The results returned in the list contain: 
 #   1. The chosen model as a number
 #   2. The chosen model as a string 
 #   3. A tibble of the estimated expiry dates and model fit with 90/95% confidence intervals for each model and batch
