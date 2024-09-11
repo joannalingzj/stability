@@ -55,7 +55,7 @@ qq_jmp <- function(df, variable){
   df$qq <- stats::qnorm(stats::ppoints(nrow(df)))
 
   df <- df %>%
-    dplyr::mutate(.data$std := (!!rlang::sym(variable) - mean(!!rlang::sym(variable)))/stats::sd(!!rlang::sym(variable)))
+    dplyr::mutate(std = (!!rlang::sym(variable) - mean(!!rlang::sym(variable)))/stats::sd(!!rlang::sym(variable)))
 
   # Get slope and intercept for line
   m <- stats::lm(stats::as.formula(paste(variable, "~ std")), df)
@@ -453,9 +453,9 @@ models <- function(data, outcome, colours_named, debug) {
 #'   # results <- models(data = data, outcome = outcome, colours_named = colours_named, debug = debug)
 #'
 #'   # Get expiry date of all batches from all models by number of limits provided
-#'   # exp <- limits(data = results[[2]], lowerlimit = 90, upperlimit = 110, debug = 0)
+#'   # exp <- expiry(data = results[[2]], lowerlimit = 90, upperlimit = 110, debug = 0)
 
-limits <- function(data, lowerlimit, upperlimit, debug) {
+expiry <- function(data, lowerlimit, upperlimit, debug) {
 
   # Lower & Upper limits, use two-sided 95% CI
   if (!is.na(lowerlimit) & !is.na(upperlimit)) {
@@ -511,7 +511,7 @@ limits <- function(data, lowerlimit, upperlimit, debug) {
 
 # ------------------------------------------------------------------------------
 
-#' Plot results from chosen model
+#' Plot observed values and expiry date based on chosen model
 #'
 #' Variables should be named "time" and "batch"
 #'
@@ -522,7 +522,7 @@ limits <- function(data, lowerlimit, upperlimit, debug) {
 #' @param upperlimit Upper limit to plot on graph.
 #' @param chosenmodel A numeric integer (1-4) of the chosen model from choosemodel()\[\[1\]\].
 #' @param confRes A result dataset of predicted values from models()\[\[2\]\].
-#' @param expiryRes A result dataset of expiry dates by model and batch from limits().
+#' @param expiryRes A result dataset of expiry dates by model and batch from expiry().
 #' @param backtransf Formula for backtransformation of outcome variable. Supported formula strings are c("Time","log2","Time^2","Time^3","Time^4","Time^5") corresponding to the indicator formula for c(no transformation, Log 2 transformation, square root of time, cube root of time, fourth root of time, fifth root of time).
 #' @param colours_named A list of named colours to use for plotting each batch.
 #'
@@ -544,15 +544,15 @@ limits <- function(data, lowerlimit, upperlimit, debug) {
 #'     #                   colours_named = colours_named, debug = 0)
 #'
 #'     # Get expiry date of all batches from all models by number of limits provided
-#'     # exp <- limits(data = results[[2]], lowerlimit = 90, upperlimit = 110, debug = 0)
+#'     # exp <- expiry(data = results[[2]], lowerlimit = 90, upperlimit = 110, debug = 0)
 #'
 #'     # Plot results from chosen model
-#'     # expiryplot <- plot(data = data, outcome = "result_value", label = "Potency (%)",
+#'     # expiryplot <- expiryplot(data = data, outcome = "result_value", label = "Potency (%)",
 #'     #                    lowerlimit = lowerlimit, upperlimit = upperlimit,
 #'     #                    chosenmodel = model[[1]], confRes = results[[2]],
 #'     #                    expiryRes = exp, backtransf = backtransform, colours_named = colours_named)
 
-plot <- function(data, outcome, label, lowerlimit, upperlimit,
+expiryplot <- function(data, outcome, label, lowerlimit, upperlimit,
                  chosenmodel, confRes, expiryRes, backtransf, colours_named) {
   # print(colours_named)
 
@@ -806,10 +806,10 @@ stability <- function(data, outcome, label, lowerlimit, upperlimit, poolMSE, bac
   results <- models(data = data, outcome = outcome, colours_named = colours_named, debug = debug)
 
   # Get expiry date of all batches from all models by number of limits provided
-  exp <- limits(data = results[[2]], lowerlimit = lowerlimit, upperlimit = upperlimit, debug = debug)
+  exp <- expiry(data = results[[2]], lowerlimit = lowerlimit, upperlimit = upperlimit, debug = debug)
 
   # Plot results from chosen model
-  expiryplot <- plot(data = data, outcome = outcome, label = label,
+  expiryplot <- expiryplot(data = data, outcome = outcome, label = label,
                      lowerlimit = lowerlimit, upperlimit = upperlimit,
                      chosenmodel = model[[1]], confRes = results[[2]],
                      expiryRes = exp, backtransf = backtransform, colours_named = colours_named)

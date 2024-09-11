@@ -2,9 +2,9 @@
 
 export("%>%")
 export(choosemodel)
-export(limits)
+export(expiry)
+export(expiryplot)
 export(models)
-export(plot)
 export(qq_jmp)
 export(stability)
 importFrom(magrittr,"%>%")
