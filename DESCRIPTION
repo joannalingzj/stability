@@ -1,10 +1,9 @@
 Package: stability
-Title: What the Package Does (One Line, Title Case)
+Title: Determine Product Expiry Date Based On Stability Batches
 Version: 0.0.0.9000
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
+    person("Joanna", "Ling", , "joanna.ling@csl.com.au", role = c("aut", "cre"))
+Description: Selects appropriate model for determining product expiry date based on ICH Q1E Evaluation of Stability Data (CPMP/ICH/420/02). Results with untransformed time have been validated against the Stability Platform of SAS JMP software. 
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -21,3 +20,6 @@ Imports:
     tidyr
 URL: https://github.com/joanna-ling/stability
 BugReports: https://github.com/joanna-ling/stability/issues
+Depends: 
+    R (>= 2.10)
+LazyData: true

@@ -1,0 +1,114 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+# stability
+
+<!-- badges: start -->
+<!-- badges: end -->
+
+The goal of stability is to analyse stability data to determine product expiry date based on pre-defined upper/lower limits in the drug development process. Observed stability results and expiry date based on the chosen stability model are visualised by time (months) and batch. 
+
+## Installation
+
+You can install the development version of stability from [GitHub](https://github.com/) with:
+
+``` r
+# install.packages("pak")
+pak::pak("joanna-ling/stability")
+```
+
+## Example
+
+This is a basic example which shows you how to solve a common problem:
+
+```{r example}
+#### Load Required Packages ####
+if (!require("pacman")) install.packages("pacman")
+
+suppressMessages(
+  pacman::p_load(
+    tidyverse,
+    ggplot2,
+    readxl,
+    janitor,
+    stringr,
+    ggpubr,
+    stability
+  )
+)
+
+# Test using CSL312 sFP 36 months example data
+data <- read_excel("C:/Users/U0152563/OneDrive - CSL Behring/Desktop/R learning/stability/Stability_Examples.xlsx", sheet = "CLS312_sFP_36m") %>% 
+  clean_names() %>% 
+  mutate(time = time_months,
+         batch = lot) %>% 
+  subset(!(temperature == "2 to 8°C" & time == 36)) %>% 
+  # This part is manually removing values that are different from the report... 
+  mutate(flag = case_when(quality_attribute == "SE HPLC Monomer" & result_value == 97.2 & time == 3 & batch == "P100213605" ~ 1,
+                          quality_attribute == "SE HPLC Monomer" & result_value == 97.5 & time == 3 & batch == "P100229828" ~ 1,
+                          quality_attribute == "SE HPLC Monomer" & result_value == 97.5 & time == 9 & batch == "P100229828" ~ 1,
+                          quality_attribute == "SE HPLC HMWS" & result_value == 3.0 & time == 3 & batch == "P100213605" ~ 1,
+                          quality_attribute == "SE HPLC HMWS" & result_value == 2.1 & time == 3 & batch == "P100229828" ~ 1,
+                          quality_attribute == "SE HPLC HMWS" & result_value == 2.5 & time == 9 & batch == "P100229828" ~ 1,
+                          TRUE ~ 0 )) %>% 
+  subset(flag == 0)
+
+data_dist <- data[,c("quality_attribute","units","lower_limit","upper_limit")] %>% 
+  distinct() %>% 
+  subset(!is.na(lower_limit) | !is.na(upper_limit)) %>% 
+  mutate(label = case_when(units == "N/A" ~ paste0(quality_attribute),
+                           TRUE ~ paste0(quality_attribute," (",units,")")))
+
+data_transf <- data %>% 
+  mutate(time = case_when(quality_attribute == "SE HPLC Monomer" ~ sqrt(time),
+                          quality_attribute == "SE HPLC HMWS" ~ sqrt(time),
+                          quality_attribute == "CE reducing" ~ sqrt(time),
+                          quality_attribute == "CE non reducing LMWS" ~ sqrt(time),
+                          TRUE ~ time),
+         backtransform = case_when(quality_attribute == "SE HPLC Monomer" ~ "Time^2",
+                                   quality_attribute == "SE HPLC HMWS" ~ "Time^2",
+                                   quality_attribute == "CE reducing" ~ "Time^2",
+                                   quality_attribute == "CE non reducing LMWS" ~ "Time^2",
+                                   TRUE ~ "Time"))
+
+
+# Set colours using all batches in dataset
+colours <- c("#FC1921","#0E56A5","#F5C017","#975DA2","#00A28A",
+             "#DA2877","#F06125","#03B3BE","#C6D92D","#572A7B")
+colours_named <- setNames(object = colours, nm = c(unique(data_transf$batch),"Common Intercept"))
+
+qa <- data_dist$quality_attribute
+lbl <- data_dist$label
+ll <- data_dist$lower_limit
+ul <- data_dist$upper_limit
+
+# Initialise empty results list 
+stab <- vector(mode = "list", length = length(qa))
+
+for (i in 1:1) {
+  
+  data_qa <- subset(data_transf, quality_attribute == qa[i])
+  
+  bt <- unique(data_qa$backtransform)
+  
+  stab[[i]] <- stability(data = data_qa, outcome = "result_value", label = lbl[i],
+                         lowerlimit = ll[i], upperlimit = ul[i], poolMSE = 0, 
+                         backtransform = bt, colours_named = colours_named, debug = 0)
+  
+}
+
+stab[[1]]
+
+```
