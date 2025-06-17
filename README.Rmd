@@ -34,6 +34,9 @@ pak::pak("joanna-ling/stability")
 This is a basic example which shows you how to solve a common problem:
 
 ```{r example}
+
+# pak::pak("joanna-ling/stability")
+
 #### Load Required Packages ####
 if (!require("pacman")) install.packages("pacman")
 
@@ -49,43 +52,57 @@ suppressMessages(
   )
 )
 
-# Load example dataset from stability package
-data(example_data)
+# Generate example data for a stability study
+set.seed(873951)
+example_data <- tibble(quality_attribute = c("SE HPLC HMWS", "pH", "CE Reducing Main Peak")) %>% 
+  cross_join(tibble(time_months = c(0, 3, 6, 9, 12, 18, 24, 36))) %>%
+  cross_join(tibble(batch = c("A", "B", "C"))) %>% 
+  mutate(result_value = case_when(quality_attribute == "pH" ~ round(runif(n(), min = 5.9, max = 6.1),2),
+                           quality_attribute == "SE HPLC HMWS" & time_months == 0 ~ round(rnorm(n(), mean = 1.2, sd = 0.05),2),
+                           quality_attribute == "SE HPLC HMWS" & time_months == 3 ~ round(rnorm(n(), mean = 1.3, sd = 0.05),2),
+                           quality_attribute == "SE HPLC HMWS" & time_months == 6 ~ round(rnorm(n(), mean = 1.5, sd = 0.05),2),
+                           quality_attribute == "SE HPLC HMWS" & time_months == 9 ~ round(rnorm(n(), mean = 1.7, sd = 0.05),2),
+                           quality_attribute == "SE HPLC HMWS" & time_months == 12 ~ round(rnorm(n(), mean = 1.9, sd = 0.05),2),
+                           quality_attribute == "SE HPLC HMWS" & time_months == 18 ~ round(rnorm(n(), mean = 2, sd = 0.05),2),
+                           quality_attribute == "SE HPLC HMWS" & time_months == 24 ~ round(rnorm(n(), mean = 2.1, sd = 0.05),2),
+                           quality_attribute == "SE HPLC HMWS" & time_months == 36 ~ round(rnorm(n(), mean = 2.2, sd = 0.05),2),
+                           quality_attribute == "CE Reducing Main Peak" & time_months == 0 ~ round(rnorm(n(), mean = 97, sd = 0.07),2),
+                           quality_attribute == "CE Reducing Main Peak" & time_months == 3 ~ round(rnorm(n(), mean = 96.8, sd = 0.07),2),
+                           quality_attribute == "CE Reducing Main Peak" & time_months == 6 ~ round(rnorm(n(), mean = 96.6, sd = 0.07),2),
+                           quality_attribute == "CE Reducing Main Peak" & time_months == 9 ~ round(rnorm(n(), mean = 96.4, sd = 0.07),2),
+                           quality_attribute == "CE Reducing Main Peak" & time_months == 12 ~ round(rnorm(n(), mean = 96.3, sd = 0.07),2),
+                           quality_attribute == "CE Reducing Main Peak" & time_months == 18 ~ round(rnorm(n(), mean = 96.2, sd = 0.07),2),
+                           quality_attribute == "CE Reducing Main Peak" & time_months == 24 ~ round(rnorm(n(), mean = 96.1, sd = 0.07),2),
+                           quality_attribute == "CE Reducing Main Peak" & time_months == 36 ~ round(rnorm(n(), mean = 96.0, sd = 0.07),2),
+                           TRUE ~ NA),
+         lower_limit = case_when(quality_attribute == "pH" ~ 5.8,
+                                 quality_attribute == "CE Reducing Main Peak" ~ 94.5,
+                                 TRUE ~ NA),
+         upper_limit = case_when(quality_attribute == "pH" ~ 6.2,
+                                 quality_attribute == "SE HPLC HMWS" ~ 4.3,
+                                 TRUE ~ NA),
+         units = case_when(quality_attribute == "pH" ~ "",
+                           quality_attribute == "SE HPLC HMWS" ~ "%",
+                           quality_attribute == "CE Reducing Main Peak" ~ "%",
+                           TRUE ~ NA),
+         label = case_when(quality_attribute == "pH" ~ "pH",
+                          TRUE ~ paste0(quality_attribute, " (", units, ")")),
+         time = time_months)
 
-# Clean variable names, rename variables to required names, exclude unrelated data points 
-data <- example_data %>% 
-  clean_names() %>% 
-  mutate(time = time_months,
-         batch = lot) %>% 
-  subset(!(temperature == "2 to 8°C" & time == 36)) %>% 
-  # This part is manually removing values that are different from the report... 
-  mutate(flag = case_when(quality_attribute == "SE HPLC Monomer" & result_value == 97.2 & time == 3 & batch == "P100213605" ~ 1,
-                          quality_attribute == "SE HPLC Monomer" & result_value == 97.5 & time == 3 & batch == "P100229828" ~ 1,
-                          quality_attribute == "SE HPLC Monomer" & result_value == 97.5 & time == 9 & batch == "P100229828" ~ 1,
-                          quality_attribute == "SE HPLC HMWS" & result_value == 3.0 & time == 3 & batch == "P100213605" ~ 1,
-                          quality_attribute == "SE HPLC HMWS" & result_value == 2.1 & time == 3 & batch == "P100229828" ~ 1,
-                          quality_attribute == "SE HPLC HMWS" & result_value == 2.5 & time == 9 & batch == "P100229828" ~ 1,
-                          TRUE ~ 0 )) %>% 
-  subset(flag == 0)
+
 
 # Get a dataset of distinct limits and generate clean labels 
-data_dist <- data[,c("quality_attribute","units","lower_limit","upper_limit")] %>% 
+data_dist <- example_data[,c("quality_attribute","units","label","lower_limit","upper_limit")] %>% 
   distinct() %>% 
-  subset(!is.na(lower_limit) | !is.na(upper_limit)) %>% 
-  mutate(label = case_when(units == "N/A" ~ paste0(quality_attribute),
-                           TRUE ~ paste0(quality_attribute," (",units,")")))
+  subset(!is.na(lower_limit) | !is.na(upper_limit)) 
 
 # Transform time variable where needed and generate back transform variable - trial and error
-data_transf <- data %>% 
-  mutate(time = case_when(quality_attribute == "SE HPLC Monomer" ~ sqrt(time),
-                          quality_attribute == "SE HPLC HMWS" ~ sqrt(time),
-                          quality_attribute == "CE reducing" ~ sqrt(time),
-                          quality_attribute == "CE non reducing LMWS" ~ sqrt(time),
+data_transf <- example_data %>% 
+  mutate(time = case_when(quality_attribute == "SE HPLC HMWS" ~ time^(1/2),
+                          quality_attribute == "CE Reducing Main Peak" ~ time^(1/3),
                           TRUE ~ time),
-         backtransform = case_when(quality_attribute == "SE HPLC Monomer" ~ "Time^2",
-                                   quality_attribute == "SE HPLC HMWS" ~ "Time^2",
-                                   quality_attribute == "CE reducing" ~ "Time^2",
-                                   quality_attribute == "CE non reducing LMWS" ~ "Time^2",
+         backtransform = case_when(quality_attribute == "SE HPLC HMWS" ~ "Time^2",
+                                   quality_attribute == "CE Reducing Main Peak" ~ "Time^3",
                                    TRUE ~ "Time"))
 
 # Set colours using all batches in dataset

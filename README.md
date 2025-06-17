@@ -26,10 +26,12 @@ pak::pak("joanna-ling/stability")
 This is a basic example which shows you how to solve a common problem:
 
 ``` r
+
+# pak::pak("joanna-ling/stability")
+
 #### Load Required Packages ####
 if (!require("pacman")) install.packages("pacman")
 #> Loading required package: pacman
-#> Warning: package 'pacman' was built under R version 4.3.2
 
 suppressMessages(
   pacman::p_load(
@@ -43,43 +45,57 @@ suppressMessages(
   )
 )
 
-# Load example dataset from stability package
-data(example_data)
+# Generate example data for a stability study
+set.seed(873951)
+example_data <- tibble(quality_attribute = c("SE HPLC HMWS", "pH", "CE Reducing Main Peak")) %>% 
+  cross_join(tibble(time_months = c(0, 3, 6, 9, 12, 18, 24, 36))) %>%
+  cross_join(tibble(batch = c("A", "B", "C"))) %>% 
+  mutate(result_value = case_when(quality_attribute == "pH" ~ round(runif(n(), min = 5.9, max = 6.1),2),
+                           quality_attribute == "SE HPLC HMWS" & time_months == 0 ~ round(rnorm(n(), mean = 1.2, sd = 0.05),2),
+                           quality_attribute == "SE HPLC HMWS" & time_months == 3 ~ round(rnorm(n(), mean = 1.3, sd = 0.05),2),
+                           quality_attribute == "SE HPLC HMWS" & time_months == 6 ~ round(rnorm(n(), mean = 1.5, sd = 0.05),2),
+                           quality_attribute == "SE HPLC HMWS" & time_months == 9 ~ round(rnorm(n(), mean = 1.7, sd = 0.05),2),
+                           quality_attribute == "SE HPLC HMWS" & time_months == 12 ~ round(rnorm(n(), mean = 1.9, sd = 0.05),2),
+                           quality_attribute == "SE HPLC HMWS" & time_months == 18 ~ round(rnorm(n(), mean = 2, sd = 0.05),2),
+                           quality_attribute == "SE HPLC HMWS" & time_months == 24 ~ round(rnorm(n(), mean = 2.1, sd = 0.05),2),
+                           quality_attribute == "SE HPLC HMWS" & time_months == 36 ~ round(rnorm(n(), mean = 2.2, sd = 0.05),2),
+                           quality_attribute == "CE Reducing Main Peak" & time_months == 0 ~ round(rnorm(n(), mean = 97, sd = 0.07),2),
+                           quality_attribute == "CE Reducing Main Peak" & time_months == 3 ~ round(rnorm(n(), mean = 96.8, sd = 0.07),2),
+                           quality_attribute == "CE Reducing Main Peak" & time_months == 6 ~ round(rnorm(n(), mean = 96.6, sd = 0.07),2),
+                           quality_attribute == "CE Reducing Main Peak" & time_months == 9 ~ round(rnorm(n(), mean = 96.4, sd = 0.07),2),
+                           quality_attribute == "CE Reducing Main Peak" & time_months == 12 ~ round(rnorm(n(), mean = 96.3, sd = 0.07),2),
+                           quality_attribute == "CE Reducing Main Peak" & time_months == 18 ~ round(rnorm(n(), mean = 96.2, sd = 0.07),2),
+                           quality_attribute == "CE Reducing Main Peak" & time_months == 24 ~ round(rnorm(n(), mean = 96.1, sd = 0.07),2),
+                           quality_attribute == "CE Reducing Main Peak" & time_months == 36 ~ round(rnorm(n(), mean = 96.0, sd = 0.07),2),
+                           TRUE ~ NA),
+         lower_limit = case_when(quality_attribute == "pH" ~ 5.8,
+                                 quality_attribute == "CE Reducing Main Peak" ~ 94.5,
+                                 TRUE ~ NA),
+         upper_limit = case_when(quality_attribute == "pH" ~ 6.2,
+                                 quality_attribute == "SE HPLC HMWS" ~ 4.3,
+                                 TRUE ~ NA),
+         units = case_when(quality_attribute == "pH" ~ "",
+                           quality_attribute == "SE HPLC HMWS" ~ "%",
+                           quality_attribute == "CE Reducing Main Peak" ~ "%",
+                           TRUE ~ NA),
+         label = case_when(quality_attribute == "pH" ~ "pH",
+                          TRUE ~ paste0(quality_attribute, " (", units, ")")),
+         time = time_months)
 
-# Clean variable names, rename variables to required names, exclude unrelated data points 
-data <- example_data %>% 
-  clean_names() %>% 
-  mutate(time = time_months,
-         batch = lot) %>% 
-  subset(!(temperature == "2 to 8°C" & time == 36)) %>% 
-  # This part is manually removing values that are different from the report... 
-  mutate(flag = case_when(quality_attribute == "SE HPLC Monomer" & result_value == 97.2 & time == 3 & batch == "P100213605" ~ 1,
-                          quality_attribute == "SE HPLC Monomer" & result_value == 97.5 & time == 3 & batch == "P100229828" ~ 1,
-                          quality_attribute == "SE HPLC Monomer" & result_value == 97.5 & time == 9 & batch == "P100229828" ~ 1,
-                          quality_attribute == "SE HPLC HMWS" & result_value == 3.0 & time == 3 & batch == "P100213605" ~ 1,
-                          quality_attribute == "SE HPLC HMWS" & result_value == 2.1 & time == 3 & batch == "P100229828" ~ 1,
-                          quality_attribute == "SE HPLC HMWS" & result_value == 2.5 & time == 9 & batch == "P100229828" ~ 1,
-                          TRUE ~ 0 )) %>% 
-  subset(flag == 0)
+
 
 # Get a dataset of distinct limits and generate clean labels 
-data_dist <- data[,c("quality_attribute","units","lower_limit","upper_limit")] %>% 
+data_dist <- example_data[,c("quality_attribute","units","label","lower_limit","upper_limit")] %>% 
   distinct() %>% 
-  subset(!is.na(lower_limit) | !is.na(upper_limit)) %>% 
-  mutate(label = case_when(units == "N/A" ~ paste0(quality_attribute),
-                           TRUE ~ paste0(quality_attribute," (",units,")")))
+  subset(!is.na(lower_limit) | !is.na(upper_limit)) 
 
 # Transform time variable where needed and generate back transform variable - trial and error
-data_transf <- data %>% 
-  mutate(time = case_when(quality_attribute == "SE HPLC Monomer" ~ sqrt(time),
-                          quality_attribute == "SE HPLC HMWS" ~ sqrt(time),
-                          quality_attribute == "CE reducing" ~ sqrt(time),
-                          quality_attribute == "CE non reducing LMWS" ~ sqrt(time),
+data_transf <- example_data %>% 
+  mutate(time = case_when(quality_attribute == "SE HPLC HMWS" ~ time^(1/2),
+                          quality_attribute == "CE Reducing Main Peak" ~ time^(1/3),
                           TRUE ~ time),
-         backtransform = case_when(quality_attribute == "SE HPLC Monomer" ~ "Time^2",
-                                   quality_attribute == "SE HPLC HMWS" ~ "Time^2",
-                                   quality_attribute == "CE reducing" ~ "Time^2",
-                                   quality_attribute == "CE non reducing LMWS" ~ "Time^2",
+         backtransform = case_when(quality_attribute == "SE HPLC HMWS" ~ "Time^2",
+                                   quality_attribute == "CE Reducing Main Peak" ~ "Time^3",
                                    TRUE ~ "Time"))
 
 # Set colours using all batches in dataset
@@ -129,48 +145,46 @@ stab[[1]]
 #> [1] "Common intercepts and Common slopes"
 #> 
 #> [[3]]
-#> # A tibble: 11 × 15
-#> # Groups:   model, batch, flag [11]
-#>    batch     time   fit lwr90 upr90 lwr95 upr95 model diff_lwr flag_lwr diff_upr
-#>    <chr>    <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl>    <dbl>    <dbl>    <dbl>
-#>  1 P100213…  78.6  5.89  5.73  6.05  5.70  6.08     1  1.58e-7        1  2.15e-1
-#>  2 P100229…  71.7  5.87  5.73  6.01  5.70  6.04     1  1.28e-6        1  2.56e-1
-#>  3 P100269…  74.0  5.88  5.73  6.03  5.70  6.06     1  1.48e-6        1  2.42e-1
-#>  4 P100213… 105.   5.85  5.73  5.98  5.70  6.00     2  1.86e-6        1  2.98e-1
-#>  5 P100229…  97.8  5.84  5.72  5.96  5.70  5.98     2  2.65e-6        1  3.20e-1
-#>  6 P100269…  92.0  5.83  5.72  5.94  5.70  5.96     2  3.01e-6        1  3.38e-1
-#>  7 0         98.4  5.84  5.72  5.96  5.70  5.98     3  1.82e-6        1  3.20e-1
-#>  8 P100213…  71.4  5.91  5.74  6.07  5.70  6.11     4  1.16e-6        1  1.89e-1
-#>  9 P100213… 178.   5.71  5.25  6.18  5.13  6.30     4 -5.71e-1        1  3.01e-7
-#> 10 P100229…  64.6  5.89  5.74  6.04  5.70  6.07     4  1.79e-6        1  2.27e-1
-#> 11 P100269…  75.5  5.88  5.74  6.02  5.70  6.05     4  9.61e-7        1  2.47e-1
-#> # ℹ 4 more variables: flag_upr <dbl>, flag <chr>, rn <int>, level <dbl>
+#> # A tibble: 10 × 12
+#> # Groups:   model, batch, flag [10]
+#>    batch  time   fit lwr90 upr90 lwr95 upr95 model       diff  flag    rn level
+#>    <chr> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl>      <dbl> <dbl> <int> <dbl>
+#>  1 A      14.3  3.85  3.40  4.30  3.30  4.40     1 0.000214       1     1    90
+#>  2 B      13.3  3.89  3.47  4.30  3.38  4.39     1 0.000188       1     1    90
+#>  3 C      13.9  3.86  3.42  4.30  3.33  4.39     1 0.0000733      1     1    90
+#>  4 A      14.8  4.03  3.77  4.30  3.71  4.36     2 0.0000552      1     1    90
+#>  5 B      14.7  4.04  3.77  4.30  3.72  4.36     2 0.0000830      1     1    90
+#>  6 C      14.6  4.04  3.78  4.30  3.72  4.35     2 0.0000186      1     1    90
+#>  7 0      14.7  4.05  3.80  4.30  3.75  4.35     3 0.000156       1     1    90
+#>  8 A      14.1  3.81  3.32  4.30  3.19  4.43     4 0.000188       1     1    90
+#>  9 B      13.1  3.83  3.36  4.30  3.24  4.42     4 0.000121       1     1    90
+#> 10 C      13.8  3.83  3.35  4.30  3.23  4.42     4 0.00000499     1     1    90
 #> 
 #> [[4]]
 #> # A tibble: 18 × 6
-#>    model parameter             Estimate `Std. Error` `t value` `Pr(>|t|)`
-#>    <dbl> <chr>                    <dbl>        <dbl>     <dbl>      <dbl>
-#>  1     1 Intercept: P100213605  6.03        0.0290      208.     2.70e-36
-#>  2     1 Slope: P100213605     -0.00179     0.00145      -1.24   2.28e- 1
-#>  3     1 Intercept: P100229828  6.01        0.0290      207.     2.90e-36
-#>  4     1 Slope: P100229828     -0.00197     0.00145      -1.37   1.86e- 1
-#>  5     1 Intercept: P100269008  5.99        0.0290      206.     3.19e-36
-#>  6     1 Slope: P100269008     -0.00145     0.00145      -1.00   3.27e- 1
-#>  7     2 Slope                 -0.00174     0.000799     -2.18   3.99e- 2
-#>  8     2 Intercept: P100213605  6.03        0.0213      284.     2.89e-42
-#>  9     2 Intercept: P100229828  6.01        0.0213      283.     3.15e-42
-#> 10     2 Intercept: P100269008  5.99        0.0213      282.     3.39e-42
-#> 11     3 Slope                 -0.00174     0.000814     -2.14   4.27e- 2
-#> 12     3 Intercept              6.01        0.0163      368.     3.35e-48
-#> 13     4 Slope: P100213605     -0.00179     0.00152      -1.18   2.78e- 1
-#> 14     4 Intercept: P100213605  6.03        0.0306      197.     2.26e-14
-#> 15     4 Slope: P100229828     -0.00197     0.00156      -1.26   2.47e- 1
-#> 16     4 Intercept: P100229828  6.01        0.0314      192.     2.77e-14
-#> 17     4 Slope: P100269008     -0.00145     0.00122      -1.18   2.75e- 1
-#> 18     4 Intercept: P100269008  5.99        0.0246      244.     5.17e-15
+#>    model parameter    Estimate `Std. Error` `t value` `Pr(>|t|)`
+#>    <dbl> <chr>           <dbl>        <dbl>     <dbl>      <dbl>
+#>  1     1 Intercept: A    1.07        0.0857     12.5    2.58e-10
+#>  2     1 Slope: A        0.195       0.0233      8.34   1.35e- 7
+#>  3     1 Intercept: B    1.03        0.0857     12.1    4.60e-10
+#>  4     1 Slope: B        0.214       0.0233      9.17   3.31e- 8
+#>  5     1 Intercept: C    1.11        0.0857     13.0    1.40e-10
+#>  6     1 Slope: C        0.197       0.0233      8.44   1.13e- 7
+#>  7     2 Slope           0.202       0.0129     15.6    1.14e-12
+#>  8     2 Intercept: A    1.05        0.0574     18.3    5.99e-14
+#>  9     2 Intercept: B    1.07        0.0574     18.7    3.84e-14
+#> 10     2 Intercept: C    1.10        0.0574     19.1    2.53e-14
+#> 11     3 Slope           0.202       0.0126     16.1    1.21e-13
+#> 12     3 Intercept       1.07        0.0461     23.3    5.51e-17
+#> 13     4 Slope: A        0.195       0.0230      8.45   1.50e- 4
+#> 14     4 Intercept: A    1.07        0.0847     12.7    1.48e- 5
+#> 15     4 Slope: B        0.214       0.0241      8.89   1.13e- 4
+#> 16     4 Intercept: B    1.03        0.0885     11.7    2.36e- 5
+#> 17     4 Slope: C        0.197       0.0229      8.62   1.34e- 4
+#> 18     4 Intercept: C    1.11        0.0840     13.3    1.14e- 5
 #> 
 #> [[5]]
-#> [1] 98.382
+#> [1] 180
 #> 
 #> [[6]]
 ```
